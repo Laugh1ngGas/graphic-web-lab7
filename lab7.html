@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>lab 7</title>
+    <script src="./js/three.js"></script>
+    <script src="./js/TrackballControls.js"></script>
+    <script src="./js/dat.gui.js"></script>
+  </head>
+  <body>
+    <video
+      id="video"
+      loop
+      autoplay="autoplay"
+      style="display: none; position: absolute; left: 15px; top: 75px"
+      src="./movies/Fire.mp4"
+    ></video>
+
+    <script>
+      init();
+
+      function init() {
+        var renderer = window.WebGLRenderingContext
+          ? new THREE.WebGLRenderer({ antialias: true })
+          : new THREE.CanvasRenderer();
+        renderer.setClearColor(new THREE.Color(0xeeeeee));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMapEnabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        var video = document.getElementById("video");
+        var videoTexture = new THREE.Texture(video);
+        videoTexture.minFilter = THREE.LinearFilter;
+        videoTexture.magFilter = THREE.LinearFilter;
+        videoTexture.format = THREE.RGBFormat;
+        videoTexture.generateMipmaps = false;
+
+        var camera = new THREE.PerspectiveCamera(
+          45,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        var scene = new THREE.Scene();
+
+        var trackballControls = new THREE.TrackballControls(camera);
+
+        var ambientLight = new THREE.AmbientLight(0xffffff);
+        scene.add(ambientLight);
+        var spotLight = new THREE.SpotLight(0xffffff);
+
+        spotLight.position.set(-80, 120, -20);
+        spotLight.castShadow = true;
+        scene.add(spotLight);
+
+        var sphereGeometry = new THREE.SphereGeometry(16, 40, 40);
+
+        var sphereMaterial = new THREE.MeshLambertMaterial({
+          map: videoTexture,
+        });
+        var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphere.castShadow = true;
+
+        sphere.position.set(0, 0, 0);
+        scene.add(sphere);
+
+        var fontLoader = new THREE.FontLoader();
+        var textMesh1, textMesh2;
+
+        fontLoader.load("./fonts/Comfortaa-Regular.json", function (font) {
+          var textGeometry1 = new THREE.TextGeometry(
+            "Текст з однією текстурою",
+            {
+              size: 10,
+              height: 3,
+              curveSegments: 6,
+              bevelEnabled: true,
+              bevelThickness: 2,
+              bevelSize: 1,
+              font: font,
+            }
+          );
+
+          var textGeometry2 = new THREE.TextGeometry(
+            "Текст з двома текстурами",
+            {
+              size: 10,
+              height: 3,
+              curveSegments: 6,
+              bevelEnabled: true,
+              bevelThickness: 2,
+              bevelSize: 1,
+              font: font,
+            }
+          );
+
+          var Texture = THREE.ImageUtils.loadTexture("images/sky.jpg");
+          Texture.wrapS = Texture.wrapT = THREE.RepeatWrapping;
+          Texture.repeat.set(0.05, 0.05);
+          var Material = new THREE.MeshBasicMaterial({ map: Texture });
+
+          var ExtrTexture = THREE.ImageUtils.loadTexture("images/fire.jpg");
+          ExtrTexture.wrapS = ExtrTexture.wrapT = THREE.RepeatWrapping;
+          ExtrTexture.offset.set(0, 0.7);
+          ExtrTexture.repeat.set(0, 0.13);
+          var extrMaterial = new THREE.MeshBasicMaterial({ map: ExtrTexture });
+
+          var materials = [Material, extrMaterial];
+
+          textMesh1 = new THREE.Mesh(textGeometry1, Material);
+          textMesh1.position.set(0, 80, 0);
+          scene.add(textMesh1);
+
+          textMesh2 = new THREE.Mesh(textGeometry2, materials);
+          textMesh2.position.set(0, 40, 0);
+          scene.add(textMesh2);
+        });
+
+        camera.position.x = -50;
+        camera.position.y = 70;
+        camera.position.z = 100;
+        camera.lookAt(scene.position);
+
+        var controls = new (function () {
+          this.scaleText1 = 1;
+          this.scaleText2 = 1;
+
+          this.changeScale1 = function (value) {
+            if (textMesh1) {
+              textMesh1.scale.set(value, value, value);
+            }
+          };
+          this.changeScale2 = function (value) {
+            if (textMesh1) {
+              textMesh2.scale.set(value, value, value);
+            }
+          };
+        })();
+
+        var gui = new dat.GUI();
+        gui.domElement.addEventListener(
+          "mousedown",
+          () => (trackballControls.enabled = false)
+        );
+        gui.domElement.addEventListener(
+          "mouseup",
+          () => (trackballControls.enabled = true)
+        );
+
+        gui.add(controls, "scaleText1", 0.1, 2).onChange(controls.changeScale1);
+        gui.add(controls, "scaleText2", 0.1, 2).onChange(controls.changeScale2);
+
+        function renderScene() {
+          videoTexture.needsUpdate = true;
+          requestAnimationFrame(renderScene);
+          if (trackballControls.enabled) {
+            trackballControls.update();
+          }
+          renderer.render(scene, camera);
+        }
+
+        renderScene();
+      }
+    </script>
+  </body>
+</html>
